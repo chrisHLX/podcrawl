@@ -19,7 +19,8 @@ class PodcastEpisode extends Model
         'description',
         'language',
         'show_name',
-        'image_url'
+        'image_url',
+        'spotify_url'
         // other fields you might need
     ];
 }

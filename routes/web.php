@@ -60,17 +60,20 @@ Route::post('/match-history/submit', [SummaryController::class, 'submit'])->name
 
 
 //People
-Route::get('/podcast_people', [peopleDb::class, 'getPeople'])->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/podcast_people', [peopleDb::class, 'getPeople'])->middleware(['auth', 'verified'])->name('podcast_people');
 
-//Get podcast Episode information based on the ID (we use the search function to get the id which we can then pass to this route)
-Route::get('/podcast/episode/{episodeId}', [podcastController::class, 'showEpisode'])->middleware(['auth', 'verified'])->name('podcast.showEpisode');
+
 
 //podcast episodes list
 Route::get('/podcast/episode_list', [podcastController::class, 'showEpisodeList'])->middleware(['auth', 'verified'])->name('podcast.showEpisodeList');
 Route::delete('/podcast/episodes/{id}', [PodcastController::class, 'destroy'])->middleware(['auth', 'verified'])->name('podcast.episodes.destroy');
 
-//search function 
+//search function spotify
 Route::get('/podcast/search', [PodcastController::class, 'searchEpisode'])->name('podcast.search');
+
+//Get podcast Episode information based on the ID (we use the search function to get the id which we can then pass to this route)
+Route::get('/podcast/episode/{episodeId}', [podcastController::class, 'showEpisode'])->middleware(['auth', 'verified'])->name('podcast.showEpisode');
+
 
 
 

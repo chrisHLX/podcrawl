@@ -5,11 +5,12 @@
             <h1>Podcrawl</h1>
             <p>Welcome to podcrawl, a website for all things podcast!</p>
 
-            <!-- Search Form -->
+            <!-- Search Form using spotify -->
             <form action="{{ route('podcast.search') }}" method="GET">
                 <input type="text" name="query" placeholder="Search for an episode..." required>
-                <button type="submit">Search</button>
+                <button type="submit">Search Spotify</button>
             </form>
+
 
             <p>View our podcast people <a href="/podcast_people">PEOPLE</a></p>
             <p>View our podcast episodes <a href="/podcast/episode_list">EPISODES</a></p>
@@ -23,6 +24,7 @@
     @if(isset($episodes) && count($episodes) > 0)
         @foreach($episodes as $episode)
             <div class="episode">
+                
                 <h3>{{ $episode['name'] ?? 'No Title' }}</h3>
                 @if(isset($episode['images'][0]['url']))
                     <img src="{{ $episode['images'][0]['url'] }}" alt="Episode Image">
@@ -34,6 +36,7 @@
                     <a href="{{ $episode['external_urls']['spotify'] }}" target="_blank">Listen on Spotify</a>
                 @endif
                 <p><a href="/podcast/episode/{{ $episode['id'] }}">Add To Database</a></p> 
+                
             </div>
         @endforeach
     @elseif(isset($errorMessage))

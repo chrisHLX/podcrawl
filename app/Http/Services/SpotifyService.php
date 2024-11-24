@@ -41,8 +41,10 @@ class SpotifyService
         }
 
         // Fetch episode data from Spotify
+        // This search has additional information. 
+        // The search itself doesn't return the show_name for example but if you search for an episode based on ID this information is returned
         $episodeData = $this->getEpisodeData($episodeId);
-
+        \Log::info('Episode Data: ', ['results' => $episodeData->external_urls->spotify]);
         // Create a new episode record
         return PodcastEpisode::create([
             'spotify_id' => $episodeData->id,
@@ -53,14 +55,9 @@ class SpotifyService
             'language' => $episodeData->language,
             'show_name' => $episodeData->show->name, // Show info if needed
             'image_url' => $episodeData->images[0]->url ?? null, // Use the first image
+            'spotify_url' => $episodeData->external_urls->spotify
         ]);
     }
-
-    
-
-    
-
-
 
     public function searchEpisode($query)
     {
@@ -68,7 +65,7 @@ class SpotifyService
 
         // Add 'market' parameter if required (e.g., 'AU' for Australia)
         $options = [
-            'limit' => 10,
+            'limit' => 50,
             'market' => 'AU'
         ];
 
