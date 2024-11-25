@@ -13,4 +13,6 @@ class PodCasts extends Model
     {
         return $this->hasMany(genre::class);
     }
+
+    
 }

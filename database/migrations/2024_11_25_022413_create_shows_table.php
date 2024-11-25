@@ -13,10 +13,17 @@ return new class extends Migration
     {
         Schema::create('shows', function (Blueprint $table) {
             $table->id();
-            $table->string('title');
+            $table->string('name');
+            $table->string('publisher');
+            $table->unsignedBigInteger('host_id')->nullable();
             $table->text('description')->nullable();
             $table->string('genre')->nullable();
+            $table->string('spotify_id')->unique();
+            $table->string('image_url')->nullable();
+            $table->string('spotify_url')->nullable();
             $table->timestamps();
+            // Foreign key -- if the host gets deleted then in the shows field the host will be set to null
+            $table->foreign('host_id')->references('id')->on('people')->onDelete('set null');
         });
     }
 

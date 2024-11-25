@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Log;
 use SpotifyWebAPI\SpotifyWebAPI;
 use SpotifyWebAPI\Session;
 use App\Models\PodcastEpisode; // Assuming a model for episodes exists
+use App\Models\Show;
 
 class SpotifyService
 {
@@ -31,6 +32,8 @@ class SpotifyService
         return $this->api->getEpisode($episodeId);
     }
 
+
+
     public function saveEpisodeToDatabase($episodeId)
     {
         // Check if the episode already exists in the database
@@ -44,7 +47,7 @@ class SpotifyService
         // This search has additional information. 
         // The search itself doesn't return the show_name for example but if you search for an episode based on ID this information is returned
         $episodeData = $this->getEpisodeData($episodeId);
-        \Log::info('Episode Data: ', ['results' => $episodeData->external_urls->spotify]);
+        
         // Create a new episode record
         return PodcastEpisode::create([
             'spotify_id' => $episodeData->id,
@@ -89,6 +92,62 @@ class SpotifyService
         return null; // No episodes found
     }
 
+
+    //my attempt at searching a show. It should be the exact same process as searching an epidode but with the type show.
+    public function searchShow($showName)
+    {
+        $encodedQuery = urlencode($showName); // Ensure proper URL encoding
+
+        // Add 'market' parameter if required (e.g., 'AU' for Australia)
+        $options = [
+            'limit' => 10,
+            'market' => 'AU'
+        ];
+        
+        // Search for shows
+        $results = $this->api->search($encodedQuery, 'show', $options);
+        \Log::info('Search results for show: ', ['results' => json_encode($results)]);
+
+        // Check if shows were returned
+        if (!empty($results->shows->items)) {
+            return json_decode(json_encode($results->shows->items), true); // Convert to array
+        }
+
+        // Check for additional pages of results
+        if (isset($results->shows->next)) {
+            $options['offset'] = 10; // Set offset for the next page
+            $nextPageResults = $this->api->search($encodedQuery, 'shows', $options);
+            \Log::info('Next page of results: ', ['results' => json_encode($nextPageResults)]);
+            return json_decode(json_encode(array_merge($results->shows->items, $nextPageResults->shows->items)), true);
+        }
+
+        return null; // No shows found
+    }
+
+        //trialling this by copying the get episode function
+        public function getShowData($showId)
+        {
+            // Check if the episode already exists in the database
+            $existingShow = Show::where('spotify_id', $showId)->first();
+
+            if ($existingShow) {
+                return $existingShow; //if it exists return it
+            }
+            // if it doesnt - Fetch show details from Spotify and save it to the database then return it 
+            $shows = $this->api->getShow($showId);
+            
+
+            return Show::create([
+                'name' => $shows->name,
+                'publisher' => $shows->publisher,
+                'description' => $shows->description,
+                'spotify_id' => $shows->id,
+                'image_url' => $shows->images[0]->url ?? null,
+                'spotify_url' => $shows->external_urls->spotify
+            ]);
+
+          
+        }
     
     
    

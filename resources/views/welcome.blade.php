@@ -14,6 +14,7 @@
 
             <p>View our podcast people <a href="/podcast_people">PEOPLE</a></p>
             <p>View our podcast episodes <a href="/podcast/episode_list">EPISODES</a></p>
+            <p>View our podcast shows <a href="/shows">SHOWS</a>
         </div>
     </div>
 

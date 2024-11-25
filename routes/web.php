@@ -71,10 +71,15 @@ Route::delete('/podcast/episodes/{id}', [PodcastController::class, 'destroy'])->
 //search function spotify
 Route::get('/podcast/search', [PodcastController::class, 'searchEpisode'])->name('podcast.search');
 
-//Get podcast Episode information based on the ID (we use the search function to get the id which we can then pass to this route)
+//Get podcast Episode information based on the ID (we use the search function to get the id which we can then pass to this route) if its not in the database we save it
 Route::get('/podcast/episode/{episodeId}', [podcastController::class, 'showEpisode'])->middleware(['auth', 'verified'])->name('podcast.showEpisode');
 
+//get the podcast show
+Route::get('/podcast/shows/{showName}', [showsController::class, 'searchShow'])->middleware(['auth', 'verified'])->name('podcast.shows');
+Route::get('/podcast/showsID/{showId}', [showsController::class, 'getShow'])->middleware(['auth', 'verified'])->name('podcast.show');
 
+//get the podcast shows from the database
+Route::get('/shows', [showsController::class, 'getShowList'])->middleware(['auth', 'verified'])->name('podcast.show_list');
 
 
 //DYNAMIC ROUTES

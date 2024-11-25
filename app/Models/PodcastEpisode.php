@@ -23,4 +23,10 @@ class PodcastEpisode extends Model
         'spotify_url'
         // other fields you might need
     ];
+
+    //defining the relationship between show and episode
+    public function show()
+    {
+        return $this->belongsTo(Show::class, 'id');
+    }
 }
