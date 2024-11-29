@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Services;
+use Illuminate\Support\Facades\Log;
 
 use GuzzleHttp\Client;
 
@@ -19,9 +20,10 @@ class OpenAIService
         $this->apiKey = env('OPENAI_API_KEY'); // Make sure this is set in your .env file
     }
 
-    public function summarizeText($text)
+    //call to the open ai api
+    public function callOpenAI($prompt)
     {
-        $response = $this->client->post('https://api.openai.com/v1/chat/completions', [
+        return $this->client->post('https://api.openai.com/v1/chat/completions', [
             'headers' => [
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
@@ -31,35 +33,76 @@ class OpenAIService
                 'messages' => [
                     [
                         'role' => 'user',
-                        'content' => "Summarize the following text to approximately 20 words: $text",
+                        'content' => $prompt,
                     ],
                 ],
-                'max_tokens' => 50, // You can adjust this as needed
+                'max_tokens' => 300,
             ],
-        ]);
-
-        return json_decode($response->getBody(), true);
+        ])->getBody();
     }
 
-    public function generateTips($classW, $matches)
+    //create a function for getting information on the person/people in a podcast episode could get guest and people info for both guest and host
+    // you could pass the publisher, podcast name and episode title.
+
+    public function getPeopleData($episodeName, $showName, $showPublisher, $infoType) //input type is either host or guest
     {
-        $response = $this->client->post('https://api.openai.com/v1/chat/completions', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'Content-Type' => 'application/json',
-            ],
-            'json' => [
-                'model' => 'gpt-3.5-turbo',
-                'messages' => [
-                    [
-                        'role' => 'user',
-                        'content' => "Can you make recommendations on how to play: $classW in the war within, world of warcraft considering this match history: $matches",
-                    ],
-                ],
-                'max_tokens' => 500, // You can adjust this as needed
-            ],
-        ]);
+        $prompt = "Based on the following information about the podcast:
+        - Episode Name: $episodeName
+        - Show Name/Podcast Name: $showName
+        - Show/Podcast Publisher: $showPublisher    
 
-        return json_decode($response->getBody(), true);
+        Provide detailed information about the $infoType in the following JSON format:
+        {
+            \"$infoType\": {
+                \"name\": \"\",
+                \"date_of_birth\": \"\",
+                \"podcast_name\": \"\",
+                \"interests\": \"\",
+                \"description\": \"\",
+                \"aliases\": \"\"
+            }
+        }
+        If any information is not available, use unavailable for the value. 
+        please do your best to get information for date of birth use the format year-month-date e.g 1990-12-25
+        provide the most canonical(the most obvious and popular name of the person) name and any other common aliases add to the aliases field (an array of alternate names).
+        ";
+
+        $response = $this->callOpenAI($prompt);
+        $response = json_decode($response, true);
+
+        Log::info('Chat GPT raw response', ['response' => $response]);
+
+        $content = $response['choices'][0]['message']['content'] ?? null;
+
+        if ($content) {
+            try {
+                // Decode JSON content returned by GPT
+                $data = json_decode($content, true);
+
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    // Map data to expected structure
+                    $mappedData = [
+                        $infoType => [
+                            'name' => $data[$infoType]['name'] ?? 'Unknown',
+                            'DOB' => $data[$infoType]['date_of_birth'] ?? null,
+                            'rss' => $data[$infoType]['podcast_name'] ?? null,
+                            'interests' => $data[$infoType]['interests'] ?? 'General',
+                            'description' => $data[$infoType]['description'] ?? 'No description available',
+                            'aliases' => $data[$infoType]['aliases'] ?? null
+                        ]
+                    ];
+
+                    return $mappedData;
+                } else {
+                    throw new \Exception('Invalid JSON structure in GPT response');
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to parse GPT response as JSON', ['error' => $e->getMessage()]);
+                return "NO DATA SOMETHING WENT HORRIBLY WRONG!";
+            }
+        }
+
+        return "NO DATA SOMETHING WENT HORRIBLY WRONG!";
     }
+
 }

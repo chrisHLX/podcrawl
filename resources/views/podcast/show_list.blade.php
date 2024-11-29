@@ -12,8 +12,4 @@
         </div>
         @endforeach
 
-
-    
-
-
 </x-app-layout>

@@ -18,7 +18,7 @@ class PodcastEpisode extends Model
         'duration_ms',
         'description',
         'language',
-        'show_name',
+        'show_name', // if show name in this table matches the name of shows in the shows table then link the two but really this should just be a foreign key 
         'image_url',
         'spotify_url'
         // other fields you might need
@@ -29,4 +29,22 @@ class PodcastEpisode extends Model
     {
         return $this->belongsTo(Show::class, 'id');
     }
+
+    public function people()
+    {
+        return $this->belongsToMany(People::class, 'people_podcast_episode')
+                    ->withPivot('role') // Include the role field in queries
+                    ->withTimestamps(); // Automatically manage pivot timestamps
+    }
+
+    public function hosts()
+    {
+        return $this->people()->wherePivot('role', 'host');
+    }
+
+    public function guests()
+    {
+        return $this->people()->wherePivot('role', 'guest');
+    }
+
 }

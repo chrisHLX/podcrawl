@@ -11,11 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('wow_classes', function (Blueprint $table) {
-            $table->id();
-            $table->string('class');
-            $table->string('spec');
-            $table->timestamps();
+        Schema::table('people', function (Blueprint $table) {
+            $table->json('aliases')->nullable(); // Adding the JSON field
         });
     }
 
@@ -24,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('wow_classes');
+        Schema::table('people', function (Blueprint $table) {
+            //
+        });
     }
 };

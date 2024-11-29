@@ -13,6 +13,7 @@ class Show extends Model
     protected $fillable = [
         'name',
         'publisher',
+        'host_id',
         'description',
         'genre',
         'spotify_id',

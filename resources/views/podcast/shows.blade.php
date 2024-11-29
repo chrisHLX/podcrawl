@@ -1,5 +1,5 @@
 <x-app-layout>
-
+<!-- view for list of shows -->
 
     @foreach ($shows as $show)
             <div class="episode">
