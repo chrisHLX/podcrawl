@@ -20,6 +20,7 @@ class OpenAIService
         $this->apiKey = env('OPENAI_API_KEY'); // Make sure this is set in your .env file
     }
 
+
     //call to the open ai api
     public function callOpenAI($prompt)
     {
@@ -105,4 +106,46 @@ class OpenAIService
         return "NO DATA SOMETHING WENT HORRIBLY WRONG!";
     }
 
+        
+    public function trimDescription($description, $wordLimit = 20)
+    {
+        // Split the description into an array of words
+        $words = explode(' ', $description);
+        
+        // Slice the array to get the first $wordLimit words
+        $trimmedWords = array_slice($words, 0, $wordLimit);
+        
+        // Join the words back into a string
+        return implode(' ', $trimmedWords);
+    }
+
+    public function getEmbedding($name, $description, $show_name)
+    {   
+        $trimDes = $this->trimDescription($description);
+        // Combine all the relevant information into a single text string.
+        $text = "Episode Name: $name 
+        Episode Description: $description 
+        Podcast Show Name(usually this is the host): $show_name";
+    
+        // Request to OpenAI's embedding API
+        $response = $this->client->post('https://api.openai.com/v1/embeddings', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+            ],
+            'json' => [
+                'model' => 'text-embedding-3-small', // Use the embeddings model
+                'input' => $text, // The input text to generate embeddings for
+            ],
+        ]);
+
+            // Decode the JSON response to an array
+        $responseBody = json_decode($response->getBody(), true);
+
+        // Return the embedding from the response
+        return $responseBody['data'][0]['embedding'] ?? null; // Using null coalescing to avoid error if data is missing
+    }
+
+
+    
 }

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\PodcastEpisode;
 use App\Models\Show;
 use App\Models\People;
+use App\Models\Episode_Embeddings;
 use App\Http\Services\OpenAIService;
 use App\Http\Services\SpotifyService;
 
@@ -26,7 +27,24 @@ class PodcastEpisodeObserver
         Log::info('a podcastepisode was created: {id}', ['id' => $episode->id]);
         //Goal: when a episode is created the host is updated by matching the show name and the publisher as the host
         $show = Show::where('name', $episode->show_name)->first();
-        
+
+        $vector = $this->openAIService->getEmbedding($episode->name, $episode->description, $episode->show_name);
+        Log::info('this is the VECTOR: {vector}', ['vector' => $vector]);
+
+        $encVector = json_encode($vector);
+        if ($encVector) {
+            Log::info('IF STATEMENT IS YES FOR VECTOR');
+            Log::info('this is the VECTOR: {vector}', ['vector' => $vector]);
+            Episode_Embeddings::Create([
+                'name' => $episode->name,
+                'spotify_id' => $episode->spotify_id,
+                'vector' => $encVector
+            ]);
+        } else {
+            Log::info('IF STATEMENT IS NO FOR VECTOR');
+            Log::info('this is the VECTOR: {vector}', ['vector' => $vector]);
+        }
+
 
         // so when a show is now created if the show doesnt exist it will create it and then with the show observer
         // it will trigger the show created even and the host id and people id will be attached.
@@ -74,6 +92,7 @@ class PodcastEpisodeObserver
         {
             Log::info('didnt find the name in the database');
         }
+
     }
 
 
