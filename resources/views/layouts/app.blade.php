@@ -11,13 +11,15 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
+       
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        
     </head>
-    <body class="font-sans antialiased">
+    <body class="font-sans antialiased dark:bg-black dark:text-white/50">
         <div class="min-h-screen bg-gray-100">
             @include('layouts.navigation')
-
+            @yield('content')
+            
             <!-- Page Heading -->
             @isset($header)
                 <header class="bg-white shadow">
@@ -32,5 +34,6 @@
                 {{ $slot }}
             </main>
         </div>
+      
     </body>
 </html>

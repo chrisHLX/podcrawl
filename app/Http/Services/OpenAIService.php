@@ -68,6 +68,12 @@ class OpenAIService
         provide the most canonical(the most obvious and popular name of the person) name and any other common aliases add to the aliases field (an array of alternate names).
         ";
 
+        return $this->handlePeopleData($prompt, $infoType);
+    }
+
+    public function handlePeopleData($prompt, $infoType)
+    {
+
         $response = $this->callOpenAI($prompt);
         $response = json_decode($response, true);
 
@@ -107,7 +113,7 @@ class OpenAIService
     }
 
         
-    public function trimDescription($description, $wordLimit = 20)
+    public function trimDescription($description, $wordLimit)
     {
         // Split the description into an array of words
         $words = explode(' ', $description);
@@ -119,33 +125,64 @@ class OpenAIService
         return implode(' ', $trimmedWords);
     }
 
-    public function getEmbedding($name, $description, $show_name)
-    {   
-        $trimDes = $this->trimDescription($description);
-        // Combine all the relevant information into a single text string.
-        $text = "Episode Name: $name 
-        Episode Description: $description 
-        Podcast Show Name(usually this is the host): $show_name";
-    
-        // Request to OpenAI's embedding API
-        $response = $this->client->post('https://api.openai.com/v1/embeddings', [
+    public function embeddingRequest($data)
+    {
+        return $this->client->post('https://api.openai.com/v1/embeddings', [
             'headers' => [
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
             ],
             'json' => [
                 'model' => 'text-embedding-3-small', // Use the embeddings model
-                'input' => $text, // The input text to generate embeddings for
+                'input' => $data, // The input text to generate embeddings for
             ],
-        ]);
+        ])->getBody();
+    }
+
+    public function getEmbedding($name, $description, $show_name)
+    {   
+        //normalize data to embedding 
+        $tW = str_word_count($name);
+        $sW = str_word_count($show_name);
+        $wordLimit = 65 - $tW - $sW;
+        $trimDes = $this->trimDescription($description, $wordLimit);
+        // Combine all the relevant information into a single text string.
+
+        $text = "Episode Title: $name 
+        Podcast Show: $show_name
+        Episode Description: $trimDes";
+        
+        // Request to OpenAI's embedding API
+        $response = $this->embeddingRequest($text);
 
             // Decode the JSON response to an array
-        $responseBody = json_decode($response->getBody(), true);
+        $responseBody = json_decode($response, true);
 
         // Return the embedding from the response
         return $responseBody['data'][0]['embedding'] ?? null; // Using null coalescing to avoid error if data is missing
     }
 
+    public function searchEmbedding($query)
+    {
+        $response = $this->embeddingRequest($query);
+        // Decode the JSON response to an array
+        $responseBody = json_decode($response, true);
+        // Return the embedding from the response
+        return $responseBody['data'][0]['embedding'] ?? null; // Using null coalescing to avoid error if data is missing
+    }
 
+    public function cosineSimilarity($vectorA, $vectorB) {
+        $normalizedA = $this->normalizeVector($vectorA);
+        $normalizedB = $this->normalizeVector($vectorB);
+        $dotProduct = array_sum(array_map(fn($a, $b) => $a * $b, $normalizedA, $normalizedB));
+        return $dotProduct; // Since both are unit vectors, no need for magnitude division
+    }
+    
+    public function normalizeVector(array $vector): array {
+        $magnitude = sqrt(array_sum(array_map(fn($x) => $x ** 2, $vector)));
+        return array_map(fn($x) => $x / $magnitude, $vector);
+    }
+    
+    
     
 }

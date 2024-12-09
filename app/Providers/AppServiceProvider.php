@@ -25,5 +25,6 @@ class AppServiceProvider extends ServiceProvider
         //register the observer for episodes
         PodcastEpisode::observe(PodcastEpisodeObserver::class);
         Show::observe(ShowObserver::class);
+        
     }
 }

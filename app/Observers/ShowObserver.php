@@ -26,9 +26,6 @@ class ShowObserver
        $person = People::where('name', $show->publisher)->first();
         
        if ($person) {
-            echo($person->name);
-            echo($person->DOB);
-            echo($person->id);
 
             //update the foreign id field in host to the person id
             $show->host_id = $person->id;

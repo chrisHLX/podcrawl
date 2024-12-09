@@ -28,6 +28,7 @@ class PodcastEpisodeObserver
         //Goal: when a episode is created the host is updated by matching the show name and the publisher as the host
         $show = Show::where('name', $episode->show_name)->first();
 
+        /* ------- Generate Embedding for each episode ------- */
         $vector = $this->openAIService->getEmbedding($episode->name, $episode->description, $episode->show_name);
         Log::info('this is the VECTOR: {vector}', ['vector' => $vector]);
 
@@ -41,13 +42,12 @@ class PodcastEpisodeObserver
                 'vector' => $encVector
             ]);
         } else {
-            Log::info('IF STATEMENT IS NO FOR VECTOR');
-            Log::info('this is the VECTOR: {vector}', ['vector' => $vector]);
+            Log::info('IF STATEMENT IS NO FOR VECTOR'); 
         }
 
 
         // so when a show is now created if the show doesnt exist it will create it and then with the show observer
-        // it will trigger the show created even and the host id and people id will be attached.
+        // it will trigger the show created event and the host id and people id will be attached.
         if ($show) 
         {
             // Show exists, now you can access properties like $show->id
@@ -70,6 +70,7 @@ class PodcastEpisodeObserver
             $episode->save();
         }
 
+        Log::info('attempting to linkn the guest in pivot table....... ');
         // Link the guest in pivot table
         $guest = $this->openAIService->getPeopleData($episode->name, $episode->show_name, 'no info on publisher but its probably in the show name', 'guest');
         Log::info('Chat GPT Response', [
@@ -82,8 +83,8 @@ class PodcastEpisodeObserver
                 'Aliases' => $guest['guest']['aliases'] ?? 'Not provided'
             ],
         ]);
-        $nameToSearch = $guest['guest']['name'];
 
+        $nameToSearch = $guest['guest']['name'];
         if (People::where('name', $nameToSearch)->first())
         {
             Log::info('found the name in the database');
@@ -92,7 +93,7 @@ class PodcastEpisodeObserver
         {
             Log::info('didnt find the name in the database');
         }
-
+        
     }
 
 

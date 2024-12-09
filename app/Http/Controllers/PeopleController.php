@@ -28,6 +28,7 @@ class PeopleController extends Controller
 
     public function showRequest($name)
     {
+        $name = base64_decode($name);
         // Attempt to find the person in the database by name
         $person = People::where('name', $name)->first();
     
@@ -60,5 +61,5 @@ class PeopleController extends Controller
         return view('person', compact('person', 'description'));
     }
     
-
+    
 }
