@@ -26,7 +26,9 @@
 
     <!-- Display search results if available -->
     <h1>Search Results</h1>
+    
     @if(isset($episodes) && count($episodes) > 0)
+    
         @foreach($episodes as $episode)
             <div class="episode">
                 
@@ -43,7 +45,12 @@
                 @if(isset($episode['external_urls']['spotify']))
                     <a href="{{ $episode['external_urls']['spotify'] }}" target="_blank">Listen on Spotify</a>
                 @endif
-                @if(!isset($episode['spotify_id']))
+                @php
+                    $existingEpisode = $existingEpisodes[$episode['id']] ?? null;
+                @endphp
+                @if ($existingEpisode)
+                <p>Added by: {{ $existingEpisode->user->name }}</p>
+                @else (!isset($episode['spotify_id']))
                 <p><a href="/podcast/episode/{{ $episode['id'] }}">Add To Database</a></p> 
                 @endif
             </div>

@@ -8,6 +8,7 @@ use App\Models\People;
 use App\Models\Episode_Embeddings;
 use App\Http\Services\OpenAIService;
 use App\Http\Services\SpotifyService;
+use App\Models\User;
 
 class PodcastEpisodeObserver
 {

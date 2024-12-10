@@ -20,7 +20,8 @@ class PodcastEpisode extends Model
         'language',
         'show_name', // if show name in this table matches the name of shows in the shows table then link the two but really this should just be a foreign key 
         'image_url',
-        'spotify_url'
+        'spotify_url',
+        'user_id'
         // other fields you might need
     ];
 
@@ -46,5 +47,12 @@ class PodcastEpisode extends Model
     {
         return $this->people()->wherePivot('role', 'guest');
     }
+
+    // For getting the user that added the episode
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
 
 }

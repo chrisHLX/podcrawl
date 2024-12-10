@@ -28,6 +28,7 @@ class podcastController extends Controller
         return view('welcome');
     }
 
+    //create episode function
     public function showEpisode($episodeId)
     {
         // Fetch or save episode data
@@ -40,7 +41,9 @@ class podcastController extends Controller
 
     public function showEpisodeList()
     {
-        $episodes = PodcastEpisode::all();
+        // Eager load all episodes
+        $episodes = PodcastEpisode::with('user')->get();
+
         return view('podcast.episode_list', compact('episodes'));
     }
 
@@ -56,17 +59,23 @@ class podcastController extends Controller
 
 
 
-   // Function to search for podcast episodes MOVING TO LIVEWIRE
+   // welcome.blade.php search results
     public function searchEpisode(Request $request)
     {
         $query = $request->input('query');
 
         // Call the SpotifyService search method
         $episodes = $this->spotifyService->searchEpisode($query);
+        // eager load data to avoid unnecessary extra query N + 1 problem
+       // however here we are only loading episodes that match the id that we are returning from spotify this way we dont make unnecessary calls to the database
+        $spotifyIds = collect($episodes)->pluck('id')->toArray();
+        $existingEpisodes = PodcastEpisode::with('user')->whereIn('spotify_id', $spotifyIds)->get()->keyBy('spotify_id');
+
 
         if ($episodes) {
             return view('welcome', [
                 'episodes' => $episodes, // Pass episodes directly
+                'existingEpisodes' => $existingEpisodes
             ]);
         } else {
             return view('welcome', [

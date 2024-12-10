@@ -12,11 +12,7 @@
             <p><strong>Listen on Spotify </strong><a href='{{ $episode->spotify_url }}'> {{ $episode->name }}</a></p>
 
             <img src="{{ $episode->image_url }}" alt="Episode Image" style="width:100px; height:auto;">
-            <form action="{{ route('podcast.episodes.destroy', $episode->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this episode?');">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="inline-flex items-center px-4 py-2 bg-red-600 ...">Delete</button>
-            </form>
+            <p><strong>Episode added by:</strong> {{ $episode->user->name }}</p>
         </div>
         <hr>
     @endforeach

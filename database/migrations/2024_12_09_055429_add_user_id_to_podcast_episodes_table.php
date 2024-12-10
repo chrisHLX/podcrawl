@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('genres', function (Blueprint $table) {
-            $table->id();
-            $table->string('genre');
+        Schema::table('podcast_episodes', function (Blueprint $table) {
+            //
+            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Assumes users table exists
         });
     }
 
@@ -22,6 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('genres');
+        Schema::table('podcast_episodes', function (Blueprint $table) {
+            //
+        });
     }
 };

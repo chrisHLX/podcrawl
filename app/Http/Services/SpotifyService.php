@@ -6,6 +6,7 @@ use SpotifyWebAPI\SpotifyWebAPI;
 use SpotifyWebAPI\Session;
 use App\Models\PodcastEpisode; // Assuming a model for episodes exists
 use App\Models\Show;
+use App\Models\User;
 
 class SpotifyService
 {
@@ -58,7 +59,8 @@ class SpotifyService
             'language' => $episodeData->language,
             'show_name' => $episodeData->show->name, // Show info if needed
             'image_url' => $episodeData->images[0]->url ?? null, // Use the first image
-            'spotify_url' => $episodeData->external_urls->spotify
+            'spotify_url' => $episodeData->external_urls->spotify,
+            'user_id' => auth()->id()
         ]);
     }
 

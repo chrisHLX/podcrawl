@@ -13,7 +13,10 @@ use App\Http\Controllers\peopleDb;
 
 
 
-Route::get('/', [podcastController::class, 'index']);
+Route::get('/', [podcastController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
+
+
 
 Route::get('/dashboard', function () {
     return view('dashboard');

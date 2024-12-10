@@ -50,4 +50,11 @@ class User extends Authenticatable
     {
         return $this->hasMany(Rating::class);
     }
+
+    // each user can add many podcast episodes
+    public function podcastEpisodes()
+    {
+        return $this->hasMany(PodcastEpisode::class);
+    }
+
 }
