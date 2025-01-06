@@ -22,7 +22,7 @@ class ShowObserver
     public function created(Show $show)
     {
         //so when a show is created we are searching our people table for a person with the same name as the publisher. Only works if publisher is a person
-       echo($show->publisher . '<br>');
+       
        $person = People::where('name', $show->publisher)->first();
         
        if ($person) {
@@ -32,7 +32,7 @@ class ShowObserver
             $show->save();
        } 
        else {
-            echo('PERSON! Doesnt Exist');
+        Log::info('Person doesnt exist so no we will make one');
             //so once again lets make them exist
 
             $result = $this->openAIService->getPeopleData($show->name, "podcast episode information unavailable", $show->publisher, 'host');
@@ -49,22 +49,6 @@ class ShowObserver
                 ],
             ]);
 
-            /*------ How to search the name and aliases --
-            $person = People::where('name', $name)
-            ->orWhereJsonContains('aliases', $name)
-            ->first();
-            
-
-            if ($person) {
-                $aliases = $person->aliases ?? []; // Fetch existing aliases or initialize an empty array
-
-                if (!in_array($result['host']['name'], $aliases)) {
-                    $aliases[] = $result['host']['name']; // Add the new alias
-                    $person->aliases = $aliases; // Update the field
-                    $person->save(); // Save changes to the database
-                }
-            }
-                */
 
             $person = People::create([
                 'name' => $result['host']['name'],

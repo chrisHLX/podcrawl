@@ -30,20 +30,36 @@ class podcastController extends Controller
 
     //create episode function
     public function showEpisode($episodeId)
-    {
-        // Fetch or save episode data
-        $episode = $this->spotifyService->saveEpisodeToDatabase($episodeId);
+    {   
+        // Eager load topics and their associated user
+        $episode = PodcastEpisode::with(['topics.user', 'transcripts'])->where('spotify_id', $episodeId)->first();
 
+        if (!$episode) {
+            // Save the episode if it doesn't exist, then reload with topics and users
+            $this->spotifyService->saveEpisodeToDatabase($episodeId);
+            $episode = PodcastEpisode::with(['topics.user'])->where('spotify_id', $episodeId)->first();
+        }
+    
+        // Log the topics and their associated users
+        logger($episode->topics->map(function ($topic) {
+            return [
+                'topic' => $topic->topic,
+                'user' => $topic->user ? $topic->user->name : 'Unknown',
+            ];
+        }));
+    
         return view('podcast.episode', compact('episode'));
     }
+    
+    
 
 
 
     public function showEpisodeList()
     {
         // Eager load all episodes
-        $episodes = PodcastEpisode::with('user')->get();
-
+        $episodes = PodcastEpisode::with(['user', 'transcripts'])->get();
+        
         return view('podcast.episode_list', compact('episodes'));
     }
 
@@ -56,7 +72,16 @@ class podcastController extends Controller
         return redirect()->route('podcast.showEpisodeList')->with('success', 'Episode deleted successfully.');
     }
 
+    private function tokenCost($transcript) 
+    {
+        // you should be passing the $episode->transcripts->content as the $transcript
 
+
+        $tokenCount = ceil(strlen($transcript) / 4);
+        $price = 0.002;
+        $cost = ($tokenCount / 1000) * $price;
+        logger($cost);
+    }
 
 
    // welcome.blade.php search results
@@ -145,5 +170,5 @@ class podcastController extends Controller
             'query' => $query,
         ]);
     }
-    
+
 }

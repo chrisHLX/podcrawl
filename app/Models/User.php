@@ -57,4 +57,8 @@ class User extends Authenticatable
         return $this->hasMany(PodcastEpisode::class);
     }
 
+    public function topics()
+    {
+        return $this->hasMany(UserTopics::class);
+    }
 }

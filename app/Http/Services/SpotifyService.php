@@ -15,6 +15,9 @@ class SpotifyService
 
     public function __construct()
     {
+        // Add this to a route or controller for debugging
+//dd(env('SPOTIFY_CLIENT_ID'), env('SPOTIFY_CLIENT_SECRET'));
+
         $session = new Session(
             env('SPOTIFY_CLIENT_ID'), 
             env('SPOTIFY_CLIENT_SECRET')
@@ -37,12 +40,7 @@ class SpotifyService
 
     public function saveEpisodeToDatabase($episodeId)
     {
-        // Check if the episode already exists in the database
-        $existingEpisode = PodcastEpisode::where('spotify_id', $episodeId)->first();
-
-        if ($existingEpisode) {
-            return $existingEpisode; // Already exists, so return it
-        }
+        
 
         // Fetch episode data from Spotify
         // This search has additional information. 

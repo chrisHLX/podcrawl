@@ -23,7 +23,7 @@
             <p>View our podcast shows <a href="/shows">SHOWS</a>
         </div>
     </div>
-
+    <x-simple-content-wrapper>
     <!-- Display search results if available -->
     <h1>Search Results</h1>
     
@@ -50,6 +50,7 @@
                 @endphp
                 @if ($existingEpisode)
                 <p>Added by: {{ $existingEpisode->user->name }}</p>
+                <p><a href="/podcast/episode/{{ $episode['id'] }}"><button>View Episode</button></a></p> 
                 @else (!isset($episode['spotify_id']))
                 <p><a href="/podcast/episode/{{ $episode['id'] }}">Add To Database</a></p> 
                 @endif
@@ -60,7 +61,7 @@
     @else
         <p>No results found.</p>
     @endif
-  
+    </x-simple-content-wrapper>
     
   
 

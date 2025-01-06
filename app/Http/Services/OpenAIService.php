@@ -182,6 +182,23 @@ class OpenAIService
         $magnitude = sqrt(array_sum(array_map(fn($x) => $x ** 2, $vector)));
         return array_map(fn($x) => $x / $magnitude, $vector);
     }
+
+    public function wordCheck($word) {
+        $prompt = "
+                Check if the following word is a swear word or explicit. If it is, return FALSE. If it is not explicit and the word is spelled incorrectly, correct it. Return the corrected word if applicable. If no correction is possible, return FALSE. 
+                WORD TO CHECK: $word
+                NOTE: Your response can only be either FALSE or the corrected word.
+            ";
+            
+        $response = $this->callOpenAI($prompt);
+
+        $data = json_decode($response, true);
+
+        // Parse response
+        $nWord = $data['choices'][0]['message']['content'];
+
+        return $nWord;
+    }
     
     
     

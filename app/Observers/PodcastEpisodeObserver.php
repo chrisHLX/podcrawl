@@ -61,7 +61,7 @@ class PodcastEpisodeObserver
                 $episode->save();
             }
         } else {
-            echo 'No show in database';
+            
             Log::info('found no show.. '); // so lets find and add one
             $show = $this->spotifyService->searchShow($episode->show_name, true); //with the condition true this retrieves the podcast id which we can then use to create the show
             Log::info('the show was created:', ['show name' => $show->name]);

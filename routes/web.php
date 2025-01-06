@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\todoListController;
 use App\Http\Controllers\podcastController;
 use App\Http\Controllers\genreController;
@@ -10,7 +9,9 @@ use App\Http\Controllers\showsController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\SummaryController;
 use App\Http\Controllers\peopleDb;
-
+use App\Http\Controllers\topicsController;
+use App\Http\Controllers\UserInfoController;
+use App\Http\Controllers\TranscriptController;
 
 
 Route::get('/', [podcastController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
@@ -18,9 +19,7 @@ Route::get('/register', [RegisteredUserController::class, 'create'])->name('regi
 
 
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [UserInfoController::class, 'UserInfo'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -28,6 +27,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+//Topics
+Route::get('podcast/addTopic/{id}', [topicsController::class, 'addNewTopic'])->middleware(['auth', 'verified'])->name('podcast.addTopic');
 
 //genre route to save new genre
 Route::get('genre', [genreController::class, 'viewGenre']);
@@ -56,8 +57,6 @@ Route::get('/podcast/episode_list', [podcastController::class, 'showEpisodeList'
 Route::delete('/podcast/episodes/{id}', [PodcastController::class, 'destroy'])->middleware(['auth', 'verified'])->name('podcast.episodes.destroy');
 
 //search function spotify
-
-
 Route::get('/podcast/search', [PodcastController::class, 'searchEpisode'])->name('podcast.search');
 Route::get('/podcast/search/embeddings', [PodcastController::class, 'searchEmbedding'])->name('podcast.search.embeddings'); //vector search
 
@@ -71,6 +70,15 @@ Route::get('/podcast/showsID/{showId}', [showsController::class, 'getShow'])->mi
 
 //get the podcast shows from the database
 Route::get('/shows', [showsController::class, 'getShowList'])->middleware(['auth', 'verified'])->name('podcast.show_list');
+
+//Transcript 
+Route::post('/transcript/create', [TranscriptController::class, 'manage'])->middleware(['auth', 'verified'])->name('transcript.manage');
+Route::post('/podcast/addTranscript', [TranscriptController::class, 'create'])->middleware(['auth', 'verified'])->name('podcast.addTranscript');
+Route::post('/podcast/transcriptChunks', [TranscriptController::class, 'transcriptNLP'])->middleware(['auth', 'verified'])->name('podcast.transcriptChunks');
+
+
+
+
 
 
 //DYNAMIC ROUTES
