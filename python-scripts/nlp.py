@@ -15,8 +15,11 @@ def clean_transcript(transcript):
     """
     Cleans the transcript by removing timestamps and normalizing text.
     """
-    timestamps = re.findall(r'\b\d{1,2}:\d{2}\b', transcript)
-    text_without_timestamps = re.sub(r'\b\d{1,2}:\d{2}\b', '', transcript)
+    # Updated regex for timestamps with optional hours
+    timestamps = re.findall(r'\b(?:\d{1,2}:)?\d{1,2}:\d{2}\b', transcript)
+    # Remove timestamps from transcript
+    text_without_timestamps = re.sub(r'\b(?:\d{1,2}:)?\d{1,2}:\d{2}\b', '', transcript)
+    # Normalize text
     cleaned_text = re.sub(r'-\s', '', text_without_timestamps).strip()
     return cleaned_text, timestamps
 

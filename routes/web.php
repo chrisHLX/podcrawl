@@ -75,6 +75,7 @@ Route::get('/shows', [showsController::class, 'getShowList'])->middleware(['auth
 Route::post('/transcript/create', [TranscriptController::class, 'manage'])->middleware(['auth', 'verified'])->name('transcript.manage');
 Route::post('/podcast/addTranscript', [TranscriptController::class, 'create'])->middleware(['auth', 'verified'])->name('podcast.addTranscript');
 Route::post('/podcast/transcriptChunks', [TranscriptController::class, 'transcriptNLP'])->middleware(['auth', 'verified'])->name('podcast.transcriptChunks');
+Route::post('/podcast/createChunks', [TranscriptController::class, 'createChunks'])->middleware(['auth', 'verified'])->name('podcast.createChunks');
 
 
 

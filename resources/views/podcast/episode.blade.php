@@ -36,6 +36,12 @@
      @csrf
                 <input type="hidden" name="transcriptFull" value="{{ $episode->transcripts->content }}">
                 <button type="submit">View Chunks</button>
+    </form>
+    <form action="{{ route('podcast.createChunks')}}" method="POST">
+     @csrf
+                <input type="hidden" name="transcriptFull" value="{{ $episode->transcripts->content }}">
+                <input type="hidden" name="transcript_id" value="{{ $episode->transcripts->id }}">
+                <button type="submit">Create Chunks</button>
     </form>   
     {{ $episode->transcripts->content }}
     @else

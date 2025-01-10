@@ -8,6 +8,7 @@
     </script>
 @endif
 
+<x-simple-content-wrapper>
 <h1>Transcript Analysis Results</h1>
 
 @if(isset($error))
@@ -20,8 +21,8 @@
     @else
         @foreach($topics as $topic)
             <div class="topic">
-                <h3>Topic: {{ $topic['title'] ?? 'Unknown' }}</h3>
-                <p>{{ $topic['content'] }}</p>
+                <h2>Topic: {{ $topic['title'] ?? 'Unknown' }}</h2>
+                <p>{!! nl2br($topic['chunk']) !!}</p>
                 @if(isset($topic['timestamp']))
                     <p class="timestamp">Timestamp: {{ $topic['timestamp'] }}</p>
                 @endif
@@ -49,5 +50,5 @@
 </x-modal>
 
 
-
+    </x-simple-content-wrapper>
 </x-app-layout>
