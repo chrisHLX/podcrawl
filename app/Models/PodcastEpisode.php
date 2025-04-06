@@ -64,6 +64,9 @@ class PodcastEpisode extends Model
         return $this->hasMany(EpisodeUserTopics::class, 'spotify_id', 'spotify_id');
     }
 
-
+    public function summaries()
+    {
+        return $this->hasMany(TranscriptSummaries::class);
+    }
 
 }

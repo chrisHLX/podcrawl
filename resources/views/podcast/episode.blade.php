@@ -32,18 +32,23 @@
     </div>
     <h2>Add Transcript</h2>
     @if($episode->transcripts && $episode->transcripts->content)
-    <form action="{{ route('podcast.transcriptChunks')}}" method="POST">
-     @csrf
-                <input type="hidden" name="transcriptFull" value="{{ $episode->transcripts->content }}">
-                <button type="submit">View Chunks</button>
-    </form>
-    <form action="{{ route('podcast.createChunks')}}" method="POST">
-     @csrf
-                <input type="hidden" name="transcriptFull" value="{{ $episode->transcripts->content }}">
-                <input type="hidden" name="transcript_id" value="{{ $episode->transcripts->id }}">
-                <button type="submit">Create Chunks</button>
-    </form>   
-    {{ $episode->transcripts->content }}
+        @if($episode->transcripts->Tchunks)    
+            <form action="{{ route('podcast.transcriptChunks')}}" method="POST">
+            @csrf
+                        <input type="hidden" name="transcript_id" value="{{ $episode->transcripts->id }}">
+                        <button type="submit">View Chunks</button>
+            </form>
+        @else
+            <form action="{{ route('podcast.createChunks')}}" method="POST">
+            @csrf
+                        <input type="hidden" name="transcriptFull" value="{{ $episode->transcripts->content }}">
+                        <input type="hidden" name="transcript_id" value="{{ $episode->transcripts->id }}">
+                        <button type="submit">Create Chunks</button>
+            </form>
+        @endif 
+    <div class="overflow-auto">      
+        {{ $episode->transcripts->content }}
+    </div>
     @else
     <div x-data>
     <!-- Trigger Transcript Button -->

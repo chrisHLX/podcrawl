@@ -6,19 +6,25 @@ use App\Models\TranscriptSection;
 use Illuminate\Http\Request;
 use App\Models\PodcastEpisode;
 use App\Models\Tchunks;
+use App\Models\TranscriptSummaries;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
+use App\Http\Services\OpenAIService;
 
 class TranscriptController extends Controller
 {
+    protected $openAIService;
+
+    public function __construct(OpenAIService $openAIService) {
+        $this->openAIService = $openAIService;
+    }
     // Add a transcript to the database
     public function create(Request $request)
     {
         Log::info('Function called', ["title" => $request->input('title')]);
-    
+        
         try {
             $request->validate([
                 'spotify_id' => 'required|string',
@@ -26,26 +32,30 @@ class TranscriptController extends Controller
                 'content' => 'required|string',
                 'duration' => 'required|integer',
             ]);
-            Log::info('Validation passed', ["content" => $request->input('content')]);
+            Log::info('Validation passed', ["content" => Str::words($request->input('content'), 100, '')]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Validation failed', ["errors" => $e->errors()]);
             return redirect()->back()->withErrors($e->errors());
         }
-    
-
+        
+        # Format transcript if no punctuation or minimum punctuation.
+        $requestText = $request->input('content');
+        $formattedScript = $this->punk($requestText);
+       
         $transcript = Transcript::create([
             'spotify_id' => $request->input('spotify_id'),
             'user_id' => auth()->id(),
             'episode_title' => $request->input('title'),
             'duration' => $request->input('duration'),
-            'content' => $request->input('content')
+            'content' => $formattedScript
         ]);
         
-        $transcript->save();
+
+        # $transcript->save();
         return redirect()->back()->with('success', 'Transcript created ');
     }
     
-
+    // Update
     public function updateSection(Request $request, $id)
     {
         $request->validate(['content' => 'required|string']);
@@ -71,7 +81,15 @@ class TranscriptController extends Controller
         ]);
     }
 
-    
+    public function viewChunks(Request $request)
+    {
+        $id = $request->input('transcript_id');
+        // $chunks = Tchunks::where('transcript_id', $id)->get();
+        // Note getting an error tsummaries does not exist
+        $chunks = Tchunks::with(['Tsummaries.user'])->where('transcript_id', $id)->get();
+
+        return view('podcast.transcripts', ['topics' => $chunks]);
+    }
 
     public function createChunks(Request $request)
     {
@@ -81,8 +99,8 @@ class TranscriptController extends Controller
         // Split the transcript into chunks
         $chunks = $this->splitTrans($transcript, 10);
         
-        // Fetch existing chunks for this transcript ID
-        $existingChunks = Tchunks::where('transcript_id', $id)->get();
+        // Fetch existing chunks and map by 'title'
+        $existingChunks = Tchunks::where('transcript_id', $id)->get()->keyBy('title');
         
         foreach ($chunks as $index => $chunk) {
             if ($existingChunks->has($index)) {
@@ -115,159 +133,255 @@ class TranscriptController extends Controller
         
         return view('podcast.transcripts', ['topics' => $updatedChunks]);
     }
+
+    //Handling Chunk summaries
+    public function summarise(Request $request) {
+        $chunk = $request->input('chunk');
+        $chunkID = $request->input('chunkID');
+        $chunk = rawurlencode($chunk);;
+        return view('podcast.summarise', ['chunk' => $chunk, 'chunkID' => $chunkID]);
+    }
+
+    // Summarise the chunk
+    public function summariseChunk(Request $request)
+    {
+        $chunk = $request->input('chunk');
+        $summaryType = $request->input('summaryType'); // e.g., "simple", "detailed", etc.
+
+        // Perform summarization or text manipulation
+        $summary = $this->summariseText($chunk, $summaryType);
+
+        return response()->json(['summary' => $summary]);
+    }
+
+    
+
+    public function saveSummary(Request $request)
+    {
+        logger('this is a test within the save request method');
+
+        Log::info('the request data for saving the summary', [
+                'data' => $request->input('tchunks_id'), 
+                'other data' => $request->input('model'), 
+                'text' => $request->input('summary_text')
+            ]);
+
+        $validated = $request->validate([
+            'tchunks_id' => 'required|integer',
+            'summary_text' => 'required|string',
+            'model' => 'nullable|string'
+        ]);
+        $userID = auth()->id();
+        Log::info('the request data for saving the summary after validation', [
+            'data' => $validated['tchunks_id'], 
+            'other data' => $validated['model'], 
+            'text' => $validated['summary_text'],
+            'user ID' => $userID
+        ]);
+        
+
+        try {
+            // updateOrCreate method uses two paramaters. The first specifies which attributes to match the second the attributes to update
+            $summary = TranscriptSummaries::updateOrCreate(
+                // First array: "Matching attributes" to find an existing record
+                [
+                    'user_id' => $userID,
+                    'tchunks_id' => $validated['tchunks_id']
+                ],
+                // Second array: "Values to update or insert"
+                [
+                    'summary_text' => $validated['summary_text'],
+                    'model' => $validated['model'] ?? 'manual'
+                ]
+            );
+
+            return response()->json(['success' => true, 'summary_id' => $summary->id]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    // Private functions
+
+    private function summariseText($text, $type)
+    {
+        // Example summarization logic
+        Log::info('text being passed: ', ['text' => $text]);
+        if ($type === 'simple') {
+            return substr($text, 0, 100) . '...'; // Simple truncation
+        } elseif ($type === 'detailed') {
+            $prompt = "pretend you read the following transcript and you wrote a summary of the topics discussed" . $text;
+            $text = $this->openAIService->CallOpenAI($prompt);
+
+            // Decode the JSON response into an associative array
+            $decodedResponse = json_decode($text, true);
+
+            // Check if the response contains the generated text
+            if (isset($decodedResponse['choices'][0]['message']['content'])) {
+                Log::info('open ai response:', ['choices' => $decodedResponse['choices'][0]['message']['content']]);
+                return $decodedResponse['choices'][0]['message']['content'];
+            }
+            return "Detailed summary of: $text"; // Placeholder for detailed summary logic
+        }
+
+        return $text; // Default return
+    }
     
 
     private function splitTrans($transcript, $parts = 6)
     {
+        // Handle empty transcript
         if (empty($transcript)) {
             Log::warning('Empty transcript provided.');
             return [];
         }
 
-        // Define timestamp pattern
-        //$timestampPattern = '/\b(?:\d{1,2}:)?\d{1,2}:\d{2}\b/';
-        // Add newlines before and after timestamps
-        //$transcript = preg_replace($timestampPattern, "\n$0\n", $transcript);
+        // Clean and normalize the transcript
+        $transcript = $this->normalizeTranscript($transcript);
 
-        // First checks if the transcript has a speaker change and makes sure to split it by " - " 
-        $hasSpeakerChange = strpos($transcript, ' - ') !== false;
         // Handle very long transcripts
-        if (Str::length($transcript) > 1_000_000) { // Example threshold
+        if (Str::length($transcript) > 1_000_000) { // Example threshold 
             Log::warning('Transcript too long to process in one go.');
             return ['error' => 'Transcript too long'];
         }
+
+        // Split by speaker changes or sentence boundaries
+        return $this->splitBySentence($transcript, $parts);
+    }
+
+    private function splitBySpeakerChange($transcript, $parts)
+    {
         
-        if ($hasSpeakerChange) {
-            // Split transcript by speaker changes
-            $segments = Str::of($transcript)->split('/\s-\s/');
-            $totalWords = array_reduce($segments->toArray(), function ($carry, $segment) {
-                return $carry + str_word_count($segment);
-            }, 0);
-        
-            // Calculate the maximum words per part
-            $maxWordsPerPart = (int) ceil($totalWords / $parts);
-            Log::info('Calculated Max Words Per Part: ', ['maxWordsPerPart' => $maxWordsPerPart]);
-        
-            $chunks = [];
-            $currentChunk = '';
-            $currentWordCount = 0;
-        
-            try {
-                foreach ($segments as $segment) {
-                    $segmentWordCount = str_word_count($segment);
-        
-                    // If adding this segment keeps the chunk within the max word count, add it
-                    if ($currentWordCount + $segmentWordCount <= $maxWordsPerPart) {
-                        $currentChunk .= ' - ' . $segment;
-                        $currentWordCount += $segmentWordCount;
-                    } else {
-                        // If adding this segment exceeds the max word count, start a new chunk
-                        if (!empty($currentChunk)) {
-                            $chunks[] = trim($currentChunk);
-                        }
-                        $currentChunk = $segment;
-                        $currentWordCount = $segmentWordCount;
+        // Add newlines before and after timestamps
+        $timestampPattern = '/\b(?:\d{1,2}:)?\d{1,2}:\d{2}\b/';
+        $transcript = preg_replace($timestampPattern, "\n$0\n", $transcript);
+
+        // Split transcript by speaker changes
+        $segments = Str::of($transcript)->split('/\s-\s/');
+        $totalWords = array_reduce($segments->toArray(), fn($carry, $segment) => $carry + str_word_count($segment), 0);
+
+        $maxWordsPerPart = (int) ceil($totalWords / $parts);
+        Log::info('Calculated Max Words Per Part (Speaker Change): ', ['maxWordsPerPart' => $maxWordsPerPart]);
+
+        return $this->splitIntoChunks($segments, $maxWordsPerPart, ' - ');
+    }
+
+    private function splitBySentence($transcript, $parts)
+    {
+        // Split by sentences, preserving newlines before timestamps
+        $sentences = Str::of($transcript)->split('/(?<=\.|\n)\s+/');
+
+        // Calculate total words and words per part
+        $totalWords = array_reduce($sentences->toArray(), fn($carry, $sentence) => $carry + str_word_count($sentence), 0);
+        Log::info($totalWords);
+        $maxWordsPerPart = (int) ceil($totalWords / $parts);
+
+        Log::info('Calculated Max Words Per Part (No Speaker Change): ', ['maxWordsPerPart' => $maxWordsPerPart]);
+
+        // Split sentences into chunks
+        $chunks = $this->splitIntoChunks($sentences, $maxWordsPerPart);
+        Log::info($chunks);
+        // Apply preg_replace on each chunk
+        $timestampPattern = '/\b(?:\d{1,2}:)?\d{1,2}:\d{2}\b/';
+        $chunks = array_map(function ($chunk) use ($timestampPattern) {
+            return preg_replace($timestampPattern, "\n$0\n", $chunk);
+        }, $chunks);
+
+        return $chunks;
+    }
+
+
+
+    private function splitIntoChunks($segments, $maxWordsPerPart, $delimiter = '')
+    {
+        $chunks = [];
+        $currentChunk = '';
+        $currentWordCount = 0;
+
+        try {
+            foreach ($segments as $segment) {
+                $segmentWordCount = str_word_count($segment);
+
+                if ($currentWordCount + $segmentWordCount <= $maxWordsPerPart) {
+                    $currentChunk .= ($delimiter ? $delimiter : ' ') . $segment;
+                    $currentWordCount += $segmentWordCount;
+                } else {
+                    if (!empty($currentChunk)) {
+                        $chunks[] = trim($currentChunk);
                     }
+                    $currentChunk = $segment;
+                    $currentWordCount = $segmentWordCount;
                 }
-        
-                // Add the last chunk
-                if (!empty($currentChunk)) {
-                    $chunks[] = trim($currentChunk);
-                }
-        
-                Log::info('Split Successful: ', ['parts' => count($chunks)]);
-                return $chunks;
-            } catch (\Exception $e) {
-                Log::error('Error splitting transcript: ', ['message' => $e->getMessage()]);
-                return ['error' => 'Failed to split transcript'];
             }
-        } else {
-         
-            // Split by word count and start new chunks at a "." Splits by . 
-            $sentences = Str::of($transcript)->split('/(?<=\.)\s+/'); // Split by periods followed by spaces
-            $totalWords = array_reduce($sentences->toArray(), function ($carry, $sentence) {
-                return $carry + str_word_count($sentence);
-            }, 0);
 
-            // Calculate the maximum words per part
-            $maxWordsPerPart = (int) ceil($totalWords / $parts);
-            Log::info('Calculated Max Words Per Part: ', ['maxWordsPerPart' => $maxWordsPerPart]);
-
-            $chunks = [];
-            $currentChunk = '';
-            $currentWordCount = 0;
-
-            try {
-                foreach ($sentences as $sentence) {
-                    $sentenceWordCount = str_word_count($sentence);
-
-                    // If adding this sentence keeps the chunk within the max word count, add it
-                    if ($currentWordCount + $sentenceWordCount <= $maxWordsPerPart) {
-                        $currentChunk .= ' ' . $sentence;
-                        $currentWordCount += $sentenceWordCount;
-                    } else {
-                        // If adding this sentence exceeds the max word count, start a new chunk
-                        if (!empty($currentChunk)) {
-                            $chunks[] = trim($currentChunk);
-                        }
-                        $currentChunk = $sentence;
-                        $currentWordCount = $sentenceWordCount;
-                    }
-                }
-
-                // Add the last chunk
-                if (!empty($currentChunk)) {
-                    $chunks[] = trim($currentChunk);
-                }
-
-                Log::info('Split Successful FOR THE NO SPEAKER CHANGE: ', ['parts' => count($chunks)]);
-                return $chunks;
-            } catch (\Exception $e) {
-                Log::error('Error splitting transcript: ', ['message' => $e->getMessage()]);
-                return ['error' => 'Failed to split transcript'];
+            if (!empty($currentChunk)) {
+                $chunks[] = trim($currentChunk);
             }
+
+            Log::info('Split Successful: ', ['parts' => count($chunks)]);
+            return $chunks;
+        } catch (\Exception $e) {
+            Log::error('Error splitting transcript: ', ['message' => $e->getMessage()]);
+            return ['error' => 'Failed to split transcript'];
         }
     }
-    
-    public function transcriptNLP(Request $request) {
-        ini_set('max_execution_time', 60); // 60 seconds = 1 minutes
 
-        // Get the raw transcript from the request
-        $transcript = $request->input('transcriptFull');
+    private function pythonPunct($transcript)
+    {
+        try {
+            // Save transcript to a temporary file
+            $temp_path = storage_path('app/tran_temp.txt');
+            file_put_contents($temp_path, $transcript);
 
-        //split transcript
-        $transcript = $this->splitTrans($transcript, 10);
-        logger($transcript[0]);
+            // Set up the python script command
+            $python_script = base_path('python-scripts/spas.py');
+            $process = new Process(['python', $python_script]);
+            $process->setTimeout(120);
 
-        $transcript2 = $this->splitTrans($transcript[0], 4);
-
-
-        // Path to the Python script
-        $scriptPath = base_path('python-scripts/tsplits.py');
-
-
-        foreach ($transcript as $index => $chunk) {
-            $tempFilePath = storage_path("app/temp_transcript_{$index}.txt");
-            file_put_contents($tempFilePath, $chunk);
-        
-            // Call Python script for this chunk
-            $process = new Process(['python', $scriptPath, $tempFilePath]);
+            // Run the process
             $process->mustRun();
-        
-            // Collect the results
-            $output = $process->getOutput();
-            $results[] = json_decode($output, true);
-        
-            // Delete the temporary file
-            unlink($tempFilePath);
-        }
-        
-        // Merge all results into a single array
-        $topics = array_merge(...$results);
-        
-        // return view('podcast.transcripts', ['topics' => $topics]);
-        return view('podcast.transcripts', dd($topics));
 
+            // Wait for the processed file to be created
+            $processed_path = storage_path('app/new_tran.txt');
+            $max_attempts = 10;
+            $attempt = 0;
+
+            while (!file_exists($processed_path) && $attempt < $max_attempts) {
+                usleep(50000);
+                $attempt++;
+            }
+
+            if (!file_exists($processed_path)) {
+                throw new \Exception("processed transcript file not found after waiting.");
+            }
+
+            // Read and return the processed transcript/file
+            $processed_transcript = file_get_contents($processed_path);
+            Log::info('Python Process Successful.', ['transcript' => $processed_transcript]);
+            return $processed_transcript;
+
+        } catch (ProcessFailedExeption $e) {
+            Log::error("Python process failed: " . $e->getMessage());
+            return "Error processing transcript.";
+        } catch (\Exception $e) {
+            Log::error("Error: " . $e->getMessage());
+            return "Error processing transcript.";
+        }
+    }
+
+    
+    private function normalizeTranscript($transcript)
+    {
+        // Remove hidden characters like \n, \r, \t
+        $transcript = preg_replace('/[\r\n\t]+/', ' ', $transcript);
+
+        // Collapse multiple spaces into a single space
+        $transcript = preg_replace('/\s+/', ' ', $transcript);
+
+        // Trim leading and trailing spaces
+        $transcript = trim($transcript);
+
+        return $transcript;
     }
 
 
@@ -295,6 +409,37 @@ class TranscriptController extends Controller
         }
         Log::info($sections);
         return $sections;
+    }
+
+    private function punk($transcript)
+    {
+        // Count words and full stops
+        $wordcount = str_word_count($transcript);
+        $fullstopcount = substr_count($transcript, '.');
+
+        // Calculate the density of fullstops
+        $density = $wordcount > 0 ? $fullstopcount / $wordcount : 0;
+
+        // Set threshold: here we expect at least 1 full stop per 50 words (density of 0.02)
+        $threshold = 1 / 50; // 0.02
+
+        if ($density < $threshold) {
+            // Insufficient punctuation – call the Python formatting script
+            // Make sure to adjust the command (python3 and script path) as needed for your environment.
+            logger("not enough punctuation sending it to python");
+    
+            // Optionally, you can capture the formatted transcript from $output if your Python script returns it.
+            // For example, if your script prints the formatted transcript on the last line:
+
+            return $transcript = $this->pythonPunct($transcript);
+
+        } else {
+            // The transcript has sufficient punctuation – process it as is.
+            // Continue with the well-formatted transcript.
+            logger("transcript has punctuation");
+
+            return $transcript;
+        }
     }
 
 

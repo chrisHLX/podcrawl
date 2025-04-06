@@ -15,20 +15,11 @@
         </div>
     </div>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
+    <x-simple-content-wrapper>
                     Welcome: {{ $userInfo }}
-                </div>
-            </div>
-        </div>
-    </div>
+    </x-simple-content-wrapper>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
+    <x-simple-content-wrapper>
                     <h2>Episodes Added</h2>
                     @if (!empty($episodes))
                         @foreach ($episodes as $episode)
@@ -39,20 +30,21 @@
                     @else
                         <p>No episodes found.</p>
                     @endif
-                </div>
-            </div>
-        </div>
-    </div>
+    </x-simple-content-wrapper>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    <h2>PLaylists</h2>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <x-simple-content-wrapper>
+                    <h2>Summaries</h2>
+                    @if (!empty($episodes))
+                        @foreach ($summaries as $summary)
+                            <div>
+                                <h2>Chunk {{ $summary->Tchunks->title  }} {{ $summary->Tchunks->Transcript->episode_title }}</h2>
+                                <h3>{{ $summary['summary_text'] }}</h3>
+                                <br/>
+                            </div>
+                        @endforeach
+                    @else
+                        <p>No summaries found.</p>
+                    @endif
+    </x-simple-content-wrapper>
     
 </x-app-layout>

@@ -19,4 +19,9 @@ class Transcript extends Model
     {
         return $this->belongsTo(PodcastEpisode::class, 'spotify_id', 'spotify_id');
     }
+
+    public function Tchunks()
+    {
+        return $this->hasMany(Tchunks::class);
+    }
 }

@@ -17,6 +17,11 @@
                 <button type="submit">Search Vector</button>
             </form>
 
+            <!-- Search podcrawls Database -->
+            <form action="{{ route('podcast.searchDB') }}" method="GET">
+                <input type="text" name="searchDB" placeholder="search" required>
+                <button type="submit">Search</button>    
+            </form>
 
             <p>View our podcast people <a href="/podcast_people">PEOPLE</a></p>
             <p>View our podcast episodes <a href="/podcast/episode_list">EPISODES</a></p>
@@ -60,6 +65,32 @@
         <p>{{ $errorMessage }}</p>
     @else
         <p>No results found.</p>
+    @endif
+
+    <!-- search results for all search -->
+    <h1>Search Results for all</h1>
+
+    @if(isset($allpodcasts))
+        <p>No results found.</p>
+        <ul class="list-group">
+            @foreach($allpodcasts as $podcast)
+                <li class="list-group-item">
+                    <h3><a href="{{ route('podcast.show', $podcast->id) }}">{{ $podcast->title }}</a></h3>
+                    <p><strong>Host(s):</strong> 
+                        @foreach($podcast->hosts as $host)
+                            {{ $host->name }}@if(!$loop->last), @endif
+                        @endforeach
+                    </p>
+                    <p><strong>Guest(s):</strong> 
+                        @foreach($podcast->guests as $guest)
+                            {{ $guest->name }}@if(!$loop->last), @endif
+                        @endforeach
+                    </p>
+                    <p>{{ Str::limit($podcast->description, 200) }}</p>
+                    <a href="{{ route('podcast.show', $podcast->id) }}" class="btn btn-primary">View Podcast</a>
+                </li>
+            @endforeach
+        </ul>
     @endif
     </x-simple-content-wrapper>
     

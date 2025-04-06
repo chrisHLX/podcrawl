@@ -1,6 +1,3 @@
-
-
-
     <h1>Search Podcasts</h1>
 
     @if (!empty($podcasts))

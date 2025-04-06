@@ -20,13 +20,23 @@
         <p>No topics were detected in the transcript.</p>
     @else
         @foreach($topics as $topic)
-            <div class="topic">
-                <h2>Topic: {{ $topic['title'] ?? 'Unknown' }}</h2>
-                <p>{!! nl2br($topic['chunk']) !!}</p>
-                @if(isset($topic['timestamp']))
-                    <p class="timestamp">Timestamp: {{ $topic['timestamp'] }}</p>
+                <h2>Part: {{ 1 + $topic['title'] ?? 'Unknown' }}</h2>
+                <div class="topic overflow-auto">
+                    <p>{!! nl2br($topic['chunk']) !!}</p>
+                </div>
+                <form action="{{ route('podcast.summarise')}}" method="POST">
+                    @csrf
+                    <input type="hidden" name="chunk" value="{{ $topic['chunk'] }}">
+                    <input type="hidden" name="chunkID" value="{{ $topic['id'] }}">
+                    <button type="submit">Summarise</button>
+                    <button type="button">token count: {!! ceil( strlen(nl2br($topic['chunk'])) /4) !!}</button>
+                 </form>
+                 @if($topic->Tsummaries->isNotEmpty())
+                    @foreach($topic->Tsummaries as $summary)
+                        <h2>Summary by: {{ $summary->user->name }}</h2>
+                        <p>{{ $summary->summary_text }}</p>
+                    @endforeach
                 @endif
-            </div>
         @endforeach
     @endif
 @endif

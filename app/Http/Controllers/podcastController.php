@@ -31,8 +31,8 @@ class podcastController extends Controller
     //create episode function
     public function showEpisode($episodeId)
     {   
-        // Eager load topics and their associated user
-        $episode = PodcastEpisode::with(['topics.user', 'transcripts'])->where('spotify_id', $episodeId)->first();
+        // Eager load topics and their associated user, transcripts and sections
+        $episode = PodcastEpisode::with(['topics.user', 'transcripts', 'transcripts.Tchunks'])->where('spotify_id', $episodeId)->first();
 
         if (!$episode) {
             // Save the episode if it doesn't exist, then reload with topics and users
@@ -51,9 +51,6 @@ class podcastController extends Controller
         return view('podcast.episode', compact('episode'));
     }
     
-    
-
-
 
     public function showEpisodeList()
     {

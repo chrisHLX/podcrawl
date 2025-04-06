@@ -22,8 +22,9 @@ class OpenAIService
 
 
     //call to the open ai api
-    public function callOpenAI($prompt)
+    public function callOpenAI($prompt, $tokens = 300)
     {
+        Log::info('prompt', ['prompt' => $prompt]);
         return $this->client->post('https://api.openai.com/v1/chat/completions', [
             'headers' => [
                 'Authorization' => 'Bearer ' . $this->apiKey,
@@ -37,12 +38,12 @@ class OpenAIService
                         'content' => $prompt,
                     ],
                 ],
-                'max_tokens' => 300,
+                'max_tokens' => $tokens,
             ],
         ])->getBody();
     }
 
-    //create a function for getting information on the person/people in a podcast episode could get guest and people info for both guest and host
+    // create a function for getting information on the person/people in a podcast episode could get guest and people info for both guest and host
     // you could pass the publisher, podcast name and episode title.
 
     public function getPeopleData($episodeName, $showName, $showPublisher, $infoType) //input type is either host or guest

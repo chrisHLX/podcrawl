@@ -12,6 +12,7 @@ use App\Http\Controllers\peopleDb;
 use App\Http\Controllers\topicsController;
 use App\Http\Controllers\UserInfoController;
 use App\Http\Controllers\TranscriptController;
+use App\Http\Controllers\searchDBController;
 
 
 Route::get('/', [podcastController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
@@ -38,19 +39,18 @@ Route::post('saveGenre', [genreController::class, 'new_genre'])->name('saveGenre
 Route::get('show', [showsController::class, 'viewShows']);
 Route::post('show/{id}', [showsController::class, 'saveDescription'])->name('saveDescription');
 
+/* ------ Search Routes ------- */
 
-//qspotify API routes
+//Search Podcrawls DB
+Route::get('/searchDB', [searchDBController::class, 'searchDB'])->name('podcast.searchDB');
+
+//spotify API routes
 Route::get('/search', [podcastController::class, 'searchPodcast'])->name('podcast.search');
 Route::get('/person', [PeopleController::class, 'showPerson']);
-
-
-//AI
-
 
 //People
 Route::get('/podcast_people', [peopleDb::class, 'getPeople'])->middleware(['auth', 'verified'])->name('podcast_people');
 Route::get('/podcast/people/{id}', [peopleDb::class, 'getPeople'])->middleware(['auth', 'verified'])->name('podcast_people');
-
 
 //podcast episodes list
 Route::get('/podcast/episode_list', [podcastController::class, 'showEpisodeList'])->middleware(['auth', 'verified'])->name('podcast.showEpisodeList');
@@ -71,11 +71,18 @@ Route::get('/podcast/showsID/{showId}', [showsController::class, 'getShow'])->mi
 //get the podcast shows from the database
 Route::get('/shows', [showsController::class, 'getShowList'])->middleware(['auth', 'verified'])->name('podcast.show_list');
 
+/* ------ Transcript Routes ------- */
+
 //Transcript 
 Route::post('/transcript/create', [TranscriptController::class, 'manage'])->middleware(['auth', 'verified'])->name('transcript.manage');
 Route::post('/podcast/addTranscript', [TranscriptController::class, 'create'])->middleware(['auth', 'verified'])->name('podcast.addTranscript');
-Route::post('/podcast/transcriptChunks', [TranscriptController::class, 'transcriptNLP'])->middleware(['auth', 'verified'])->name('podcast.transcriptChunks');
+Route::post('/podcast/transcriptChunks', [TranscriptController::class, 'viewChunks'])->middleware(['auth', 'verified'])->name('podcast.transcriptChunks');
 Route::post('/podcast/createChunks', [TranscriptController::class, 'createChunks'])->middleware(['auth', 'verified'])->name('podcast.createChunks');
+
+//Transcript summaries
+Route::post('/podcast/summarise', [TranscriptController::class, 'summarise'])->middleware(['auth', 'verified'])->name('podcast.summarise');
+Route::post('/summary/save', [TranscriptController::class, 'saveSummary'])->middleware(['auth', 'verified'])->name('summary.save');
+Route::post('/podcast/summariseChunk', [TranscriptController::class, 'summariseChunk'])->middleware(['auth', 'verified'])->name('summarise.chunk');
 
 
 

@@ -93,6 +93,15 @@ class PodcastEpisodeObserver
         else
         {
             Log::info('didnt find the name in the database');
+            $person = People::create([
+                'name' => $guest['guest']['name'],
+                'DOB' => $guest['guest']['DOB'],
+                'rss' => $guest['guest']['rss'],
+                'interests' => $guest['guest']['interests'],
+                'description' => $guest['guest']['description'],
+                'aliases' => $guest['guest']['aliases']
+            ]);
+            Log::info('person created succesffuly');
         }
         
     }
