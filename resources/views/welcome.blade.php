@@ -67,7 +67,7 @@
         <p>No results found.</p>
     @endif
 
-    <!-- search results for all search -->
+    <!-- search results for all search should search everything -->
     <h1>Search Results for all</h1>
 
     @if(isset($allpodcasts))
