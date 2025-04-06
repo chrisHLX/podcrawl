@@ -1,9 +1,9 @@
 import requests
 import json
 
-# Replace with your Hugging Face API token from your account settings
-API_TOKEN = "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"
-headers = {"Authorization": f"Bearer {API_TOKEN}"}
+# Replace with your Hugging Face API token from your account settings commented out for git
+#API_TOKEN = "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"
+#headers = {"Authorization": f"Bearer {API_TOKEN}"}
 
 # Specify your model's API endpoint (using the model ID from its page)
 api_url = "https://api-inference.huggingface.co/models/oliverguhr/fullstop-punctuation-multilang-large"
