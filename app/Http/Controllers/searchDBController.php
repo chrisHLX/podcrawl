@@ -3,62 +3,66 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\PodcastEpisode; // Assuming you have a Podcast model
-use App\Models\Transcript; // Assuming you have a Transcript model
-use App\Models\People; // Assuming guests/hosts are stored in a 'persons' table
+use App\Models\PodcastEpisode;
+use App\Models\Transcript;
+use App\Helpers\TextHelper;
 
 class SearchDBController extends Controller
 {
     public function searchDB(Request $request)
     {
         $query = $request->input('searchDB');
-
-        // Ensure a search query is provided
+    
         if (!$query) {
             return redirect()->back()->with('error', 'Please enter a search term.');
         }
-
-        /*
-        // Search in podcast title and description
-        $podcasts = PodcastEpisode::where('name', 'LIKE', "%{$query}%")
-            ->orWhere('description', 'LIKE', "%{$query}%")
-            ->get();
-
-        // Search in transcripts
+    
+        $allPodcasts = PodcastEpisode::with(['hosts', 'guests'])
+        ->where(function ($queryBuilder) use ($query) {
+            $queryBuilder->where('name', 'LIKE', "%{$query}%")
+                         ->orWhere('description', 'LIKE', "%{$query}%");
+        })
+        ->get();
+    
+    
         $transcripts = Transcript::where('content', 'LIKE', "%{$query}%")->get();
 
-        // Search in guests and hosts (assuming they are stored in a 'persons' table and linked to podcasts)
-        $people = People::where('name', 'LIKE', "%{$query}%")->with('podcasts')->get();
+        // Pluck spotify_ids instead of podcast_episode_id
+        $flaggedSpotifyIds = $transcripts->pluck('spotify_id')->unique();
 
-        // Merge podcast results with those found via transcripts or people
-        $podcastsFromPeople = $people->pluck('podcasts')->flatten()->unique('id');
-        $podcastsFromTranscripts = $transcripts->pluck('podcast')->unique('id');
 
-        // Merge all results, ensuring unique podcast entries
-        $allPodcasts = $podcasts->merge($podcastsFromPeople)->merge($podcastsFromTranscripts)->unique('id');
 
-        */
 
-        // Search podcast episode meta data /*
-        
-        // Search in podcast episodes
-        $allPodcasts = PodcastEpisode::where('name', 'LIKE', "%{$query}%")
-            ->orWhere('description', 'LIKE', "%{$query}%")
-            ->get();
-
-        // Search in transcripts
-        $transcripts = Transcript::where('content', 'LIKE', "%{$query}%")->get();
-
-        // Create a list of flagged podcast IDs from matching transcripts
-        $flaggedPodcastIds = $transcripts->pluck('podcast_episode_id')->unique();
-
-        // Attach a flag to podcasts that have a matching transcript
         foreach ($allPodcasts as $podcast) {
-            $podcast->hasMatchingTranscript = $flaggedPodcastIds->contains($podcast->id);
+            $podcast->hasMatchingTranscript = $flaggedSpotifyIds->contains($podcast->spotify_id);
+
+            $podcast->highlighted_title = TextHelper::highlightMatch($podcast->title, $query);
+            $podcast->highlighted_description = TextHelper::highlightMatch($podcast->description, $query);
+
+            $podcast->transcript_snippet = null;
+
+            logger("Transcript Spotify IDs: ", $flaggedSpotifyIds->toArray());
+            logger("Podcast {$podcast->title} (spotify_id: {$podcast->spotify_id}) match: " . ($podcast->hasMatchingTranscript ? 'yes' : 'no'));
+            if ($podcast->hasMatchingTranscript) {
+                // Match the transcript by spotify_id, not podcast ID
+                $transcript = $transcripts->firstWhere('spotify_id', $podcast->spotify_id);
+
+                if ($transcript && $transcript->content) {
+                    $sentences = preg_split('/(?<=[.?!])\s+/', $transcript->content);
+
+                    foreach ($sentences as $sentence) {
+                        if (stripos($sentence, $query) !== false) {
+                            $podcast->transcript_snippet = TextHelper::highlightMatch($sentence, $query);
+                            break;
+                        }
+                    }
+                }
+            }
         }
+                
 
         return view('welcome', [
-            'allpodcasts' => $allPodcasts, 
+            'allpodcasts' => $allPodcasts,
             'dbquery' => $query
         ]);
     }

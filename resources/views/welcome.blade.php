@@ -70,28 +70,50 @@
     <!-- search results for all search should search everything -->
     <h1>Search Results for all</h1>
 
-    @if(isset($allpodcasts))
-        <p>No results found.</p>
-        <ul class="list-group">
-            @foreach($allpodcasts as $podcast)
-                <li class="list-group-item">
-                    <h3><a href="{{ route('podcast.show', $podcast->id) }}">{{ $podcast->title }}</a></h3>
-                    <p><strong>Host(s):</strong> 
-                        @foreach($podcast->hosts as $host)
-                            {{ $host->name }}@if(!$loop->last), @endif
-                        @endforeach
-                    </p>
-                    <p><strong>Guest(s):</strong> 
-                        @foreach($podcast->guests as $guest)
-                            {{ $guest->name }}@if(!$loop->last), @endif
-                        @endforeach
-                    </p>
-                    <p>{{ Str::limit($podcast->description, 200) }}</p>
-                    <a href="{{ route('podcast.show', $podcast->id) }}" class="btn btn-primary">View Podcast</a>
-                </li>
-            @endforeach
-        </ul>
-    @endif
+    @if(isset($allpodcasts) && count($allpodcasts) > 0)
+    <ul class="list-group">
+        @foreach($allpodcasts as $podcast)
+            <li class="list-group-item">
+                <h2>
+                    {{ $podcast->name }}
+                    
+                    <a href="{{ route('podcast.show', $podcast->id) }}">
+                        {!! $podcast->highlighted_title !!}
+                    </a>
+                </h2>
+
+                <p><strong>Host(s):</strong> 
+                    @foreach($podcast->hosts as $host)
+                        {{ $host->name }}@if(!$loop->last), @endif
+                    @endforeach
+                </p>
+
+                <p><strong>Guest(s):</strong> 
+                    @foreach($podcast->guests as $guest)
+                        {{ $guest->name }}@if(!$loop->last), @endif
+                    @endforeach
+                </p>
+
+                <p>{!! Str::limit($podcast->highlighted_description, 200) !!}</p>
+
+                @if($podcast->hasMatchingTranscript)
+                    <p><em>Match found in transcript:</em></p>
+                    @if($podcast->transcript_snippet)
+                        <blockquote class="border-start ps-3 text-muted">
+                            {!! $podcast->transcript_snippet !!}
+                        </blockquote>
+                    @endif
+                @endif
+
+                <a href="{{ route('podcast.show', $podcast->id) }}" class="btn btn-primary">View Podcast</a>
+            </li>
+        @endforeach
+    </ul>
+@else
+    <p>No results found.</p>
+@endif
+
+
     </x-simple-content-wrapper>
     
   
